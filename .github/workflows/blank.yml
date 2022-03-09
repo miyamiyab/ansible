@@ -1,0 +1,35 @@
+name: create_user
+on:
+  push:
+    branches:
+    - master
+    - main
+permissions: 
+      id-token: write
+      pull-requests: write
+      
+jobs:
+  createUser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Zip entire repository
+        run: zip -r ${{ github.sha }}.zip ./ -x "*.git*"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+
+      - name: Put S3
+        run: |
+          export REPOSITORY=$(echo ${{ github.repository }} | sed -e "s#.*/##")
+          aws s3 cp ${{ github.sha }}.zip s3://ks-ansible/$REPOSITORY/${{ github.ref_name }}/
+      
+      
