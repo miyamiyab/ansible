@@ -8,4 +8,4 @@
   file: dest=/home/{{ username }}/.ssh/authorized_keys state=touch owner={{ username }} group={{ username }} mode=600
 
 - name: copy publickey
-  copy: src={{ username }}/id_rsa.pub dest=/home/{{ username }}/.ssh/authorized_keys
+  copy: src=users/{{ username }}/id_rsa.pub dest=/home/{{ username }}/.ssh/authorized_keys
