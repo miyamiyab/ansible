@@ -1,0 +1,11 @@
+- name: add a new user
+  user: name={{ username }} state=present
+
+- name: mkdir .ssh
+  file: dest=/home/{{ username }}/.ssh/ state=directory owner={{ username }} group={{ username }} mode=700
+
+- name: add authorized keys
+  file: dest=/home/{{ username }}/.ssh/authorized_keys state=touch owner={{ username }} group={{ username }} mode=600
+
+- name: copy publickey
+  copy: src={{ username }}/id_rsa.pub dest=/home/{{ username }}/.ssh/authorized_keys
