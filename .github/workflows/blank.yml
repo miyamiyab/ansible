@@ -20,14 +20,6 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
-      - name: Check diff
-        id: diff
-        uses: technote-space/get-diff-action@v4.0.2
-        with:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          PATTERNS: |
-            'roles/add_user/files/users/**'    
-
       - name: Zip entire repository
         run: zip -r ${{ github.sha }}.zip ./ -x "*.git*"
 
@@ -44,7 +36,7 @@ jobs:
           
       - name: Get username
         run: |
-          for path in ${{ env.GIT_DIFF }}
+          for path in $(git diff "${{ github.event.before }}...${{ github.event.after }}" "--diff-filter=AMRC" --name-only)
           do
             user=$(echo $path | cut -d'/' -f 4)
             echo ${{ env.GIT_DIFF }}
