@@ -10,6 +10,10 @@ on:
       userName:
         required: true
         type: string
+      email:
+        description: Chatwork will notify the user with this email address of the processing result.
+        required: true
+        type: string
       
 permissions: 
       id-token: write
@@ -20,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: echo  ${{ toJson(github.event) }}
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -82,12 +85,23 @@ jobs:
           done
           
           echo "STATUS=$STATUS" >> $GITHUB_ENV
-          
+      
+      - name: Get chatwork's mention from input.
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          CW_MENTION=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.inputs.email }}'"}}')
+          echo "CW_MENTION=$CW_MENTION" >> $GITHUB_ENV
+        
+      - name: Get chatwork's mention from push.
+        if: github.event_name == 'push'
+        run: |
+          CW_MENTION=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.pusher.email }}'"}}')
+          echo "CW_MENTION=$CW_MENTION" >> $GITHUB_ENV
+      
       - name: Notify to chatwork.
-        run: |  
-          cw_data=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.pusher.email }}'"}}')
-          cw_id=$(echo $cw_data | jq -r '.Item.cw_id.N')
-          cw_name=$(echo $cw_data | jq -r '.Item.name.S')
+        run: |
+          cw_id=$(echo $CW_MENTION | jq -r '.Item.cw_id.N')
+          cw_name=$(echo $CW_MENTION | jq -r '.Item.name.S')
           url="https://ap-northeast-1.console.aws.amazon.com/systems-manager/run-command/$COMMAND_ID?region=ap-northeast-1"
           
           if [ $STATUS != "Success" ]; then
