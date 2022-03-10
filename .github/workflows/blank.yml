@@ -89,25 +89,29 @@ jobs:
       - name: Get chatwork's mention from input.
         if: github.event_name == 'workflow_dispatch'
         run: |
-          CW_MENTION=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.inputs.email }}'"}}')
-          echo "CW_MENTION=$CW_MENTION" >> $GITHUB_ENV
+          cw_mention=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.inputs.email }}'"}}')
+          CW_ID=$(echo $cw_mention | jq -r '.Item.cw_id.N')
+          CW_NAME=$(echo $cw_mention | jq -r '.Item.name.S')
+          echo "CW_ID=$CW_ID" >> $GITHUB_ENV
+          echo "CW_NAME=$CW_NAME" >> $GITHUB_ENV
         
       - name: Get chatwork's mention from push.
         if: github.event_name == 'push'
         run: |
           CW_MENTION=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.pusher.email }}'"}}')
-          echo "CW_MENTION=$CW_MENTION" >> $GITHUB_ENV
+          CW_ID=$(echo $cw_mention | jq -r '.Item.cw_id.N')
+          CW_NAME=$(echo $cw_mention | jq -r '.Item.name.S')
+          echo "CW_ID=$CW_ID" >> $GITHUB_ENV
+          echo "CW_NAME=$CW_NAME" >> $GITHUB_ENV          
       
       - name: Notify to chatwork.
         run: |
-          cw_id=$(echo $CW_MENTION | jq -r '.Item.cw_id.N')
-          cw_name=$(echo $CW_MENTION | jq -r '.Item.name.S')
           url="https://ap-northeast-1.console.aws.amazon.com/systems-manager/run-command/$COMMAND_ID?region=ap-northeast-1"
           
           if [ $STATUS != "Success" ]; then
-            data="[To:$cw_id] $cw_name\nユーザ作成に失敗しました。詳しくは、以下をご覧ください。\n$url"
+            data="[To:$CW_ID] $CW_NAME\nユーザ作成に失敗しました。詳しくは、以下をご覧ください。\n$url"
           elif [ $STATUS == "Success" ]; then
-            data="[To:$cw_id] $cw_name\nユーザ作成に成功しました。詳しくは、以下をご覧ください。\n$url"
+            data="[To:$CW_ID] $CW_NAME\nユーザ作成に成功しました。詳しくは、以下をご覧ください。\n$url"
           fi
           
           curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(echo $data)"
