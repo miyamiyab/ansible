@@ -63,6 +63,7 @@ jobs:
           --document-version "1" \
           --targets '[{"Key":"InstanceIds","Values":["i-050e7f95b5e8ecf89"]}]' \
           --parameters '{"SourceType":["S3"],"SourceInfo":["{\"path\": \"https://miyashita-ansible.s3.ap-northeast-1.amazonaws.com/ansible/main/${{ github.sha }}.zip\"}"],"InstallDependencies":["True"],"PlaybookFile":["playbooks/add_user.yml"],"ExtraVariables":["username='$USER'"],"Check":["False"],"Verbose":["-v"],"TimeoutSeconds":["3600"]}' \
+          --comment "ユーザ追加：$USER" \
           --timeout-seconds 600 \
           --max-concurrency "50" \
           --max-errors "0" \
