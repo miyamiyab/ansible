@@ -26,7 +26,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PATTERNS: |
-            'roles/add_user/files/users/**/id_rsa.pub'     
+            'roles/add_user/files/users/**'     
 
       - name: Zip entire repository
         if: steps.diff.outputs.diff
@@ -40,11 +40,13 @@ jobs:
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
 
       - name: Put S3
+        if: steps.diff.outputs.diff
         run: |
           export REPOSITORY=$(echo ${{ github.repository }} | sed -e "s#.*/##")
           aws s3 cp ${{ github.sha }}.zip s3://miyashita-ansible/$REPOSITORY/${{ github.ref_name }}/
           
       - name: Get username
+        if: steps.diff.outputs.diff
         run: |
           for path in ${{ env.GIT_DIFF }}
           do
