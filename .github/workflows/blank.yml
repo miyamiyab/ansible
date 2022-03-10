@@ -54,7 +54,7 @@ jobs:
       
       - name: Create user with ansible via ssm.
         run: |            
-          aws ssm send-command \
+          res=$(aws ssm send-command \
           --document-name "AWS-ApplyAnsiblePlaybooks" \
           --document-version "1" \
           --targets '[{"Key":"InstanceIds","Values":["i-050e7f95b5e8ecf89"]}]' \
@@ -62,6 +62,47 @@ jobs:
           --timeout-seconds 600 \
           --max-concurrency "50" \
           --max-errors "0" \
-          --region ap-northeast-1
+          --region ap-northeast-1)
+          
+          echo $res
+          INSTANCE_ID=$(echo $res | jq -r '.Command.Targets[0].Values[0]')
+          COMMAND_ID=$(echo $res | jq -r '.Command.CommandId')
+          STATUS=$(echo $res | jq -r '.Command.Status')
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
+          echo "STATUS=$STATUS" >> $GITHUB_ENV
+          
+      - name: Check result status.
+        run: |
+          while [ $STATUS == "Pending" ];
+          do
+            STATUS=$(aws ssm get-command-invocation --command-id $COMMAND_ID --instance-id $INSTANCE_ID | jq -r '.Status')
+            sleep 10
+          done
+          
+          echo "STATUS=$STATUS" >> $GITHUB_ENV
+          
+      - name: Notify to chatwork, if not success.
+        if:  $STATUS != "Success"
+        run: |
+          cw_data=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.pusher.email }}'"}}')
+          cw_id=$(echo $cw_data | jq -r '.Item.cw_id.N')
+          cw_name=$(echo $cw_data | jq -r '.Item.name.S')
+          url="https://ap-northeast-1.console.aws.amazon.com/systems-manager/run-command/$COMMAND_ID?region=ap-northeast-1"
+          data="[To:$cw_id] $cw_name\nユーザ作成に失敗しました。詳しくは、以下をご覧ください。\n$url"
+          
+          curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(echo $data)"
+          
+      - name: Notify to chatwork, if success.
+        if:  $STATUS == "Success"
+        run: |
+          cw_data=$(aws dynamodb get-item --table-name ex_gha_cw --key '{"email": {"S": "'${{ github.event.pusher.email }}'"}}')
+          cw_id=$(echo $cw_data | jq -r '.Item.cw_id.N')
+          cw_name=$(echo $cw_data | jq -r '.Item.name.S')
+          url="https://ap-northeast-1.console.aws.amazon.com/systems-manager/run-command/$COMMAND_ID?region=ap-northeast-1"
+          data="[To:$cw_id] $cw_name\nユーザ作成に成功しました。詳しくは、以下をご覧ください。\n$url"
+          
+          curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(echo $data)"
+          
 
       
