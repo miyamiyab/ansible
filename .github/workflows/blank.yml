@@ -36,6 +36,8 @@ jobs:
           
       - name: Get username
         run: |
+          git config --local user.email  ${{ github.event.pusher.email }}
+          git config --local user.name  ${{ github.event.pusher.name }}
           for path in $(git diff ${{ github.event.before }}..${{ github.event.after }} --diff-filter=A --name-only)
           do
             user=$(echo $path | cut -d'/' -f 4)
