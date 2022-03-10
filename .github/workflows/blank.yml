@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: echo ${{ github.event }}
+      - run: echo  ${{ toJson(github.event) }}
       - name: Checkout
         uses: actions/checkout@v2
         with:
