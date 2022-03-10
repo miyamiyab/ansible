@@ -36,7 +36,7 @@ jobs:
           
       - name: Get username
         run: |
-          for path in $(git diff "${{ github.event.before }}..${{ github.event.after }}" "--diff-filter=AMRC" --name-only)
+          for path in $(git diff ${{ github.event.before }}..${{ github.event.after }} --diff-filter=A --name-only)
           do
             user=$(echo $path | cut -d'/' -f 4)
             echo ${{ env.GIT_DIFF }}
