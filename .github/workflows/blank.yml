@@ -120,7 +120,7 @@ jobs:
             data="[To:$CW_ID] $CW_NAME\nユーザ作成に成功しました。詳しくは、以下をご覧ください。\n$url"
           fi
           
-          curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(printf $data)"
+          curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(printf $(echo $data))"
           
 
       
