@@ -20,6 +20,14 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      - name: Check diff
+        id: diff
+        uses: technote-space/get-diff-action@v4.0.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          PATTERNS: |
+            'roles/add_user/files/users/**'    
+
       - name: Zip entire repository
         run: zip -r ${{ github.sha }}.zip ./ -x "*.git*"
 
@@ -33,12 +41,6 @@ jobs:
         run: |
           export REPOSITORY=$(echo ${{ github.repository }} | sed -e "s#.*/##")
           aws s3 cp ${{ github.sha }}.zip s3://miyashita-ansible/$REPOSITORY/${{ github.ref_name }}/
-      
-      - name: print env
-        env:
-          INFO: ${{ toJson(github.event) }}
-        run: |
-          echo "$INFO"
           
       - name: Get username
         run: |
