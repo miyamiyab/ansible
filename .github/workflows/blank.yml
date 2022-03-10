@@ -33,6 +33,12 @@ jobs:
         run: |
           export REPOSITORY=$(echo ${{ github.repository }} | sed -e "s#.*/##")
           aws s3 cp ${{ github.sha }}.zip s3://miyashita-ansible/$REPOSITORY/${{ github.ref_name }}/
+      
+      - name: print env
+        env:
+          INFO: ${{ toJson(github.event) }}
+        run: |
+          echo "$INFO"
           
       - name: Get username
         run: |
@@ -46,7 +52,7 @@ jobs:
             --document-name "AWS-ApplyAnsiblePlaybooks" \
             --document-version "1" \
             --targets '[{"Key":"InstanceIds","Values":["i-050e7f95b5e8ecf89"]}]' \
-            --parameters '{"SourceType":["S3"],"SourceInfo":["{\"path\": \"https://miyashita-ansible.s3.ap-northeast-1.amazonaws.com/ansible/main/${{ github.sha }}\"}"],"InstallDependencies":["True"],"PlaybookFile":["playbooks/add_user.yml"],"ExtraVariables":["username=$user"],"Check":["False"],"Verbose":["-v"],"TimeoutSeconds":["3600"]}' \
+            --parameters '{"SourceType":["S3"],"SourceInfo":["{\"path\": \"https://miyashita-ansible.s3.ap-northeast-1.amazonaws.com/ansible/main/${{ github.sha }}.zip\"}"],"InstallDependencies":["True"],"PlaybookFile":["playbooks/add_user.yml"],"ExtraVariables":["username=$user"],"Check":["False"],"Verbose":["-v"],"TimeoutSeconds":["3600"]}' \
             --timeout-seconds 600 \
             --max-concurrency "50" \
             --max-errors "0" \
