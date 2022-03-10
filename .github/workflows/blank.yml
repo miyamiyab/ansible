@@ -115,12 +115,16 @@ jobs:
           url="https://ap-northeast-1.console.aws.amazon.com/systems-manager/run-command/$COMMAND_ID?region=ap-northeast-1"
           
           if [ $STATUS != "Success" ]; then
-            data="[To:$CW_ID] $CW_NAME\nユーザ作成に失敗しました。詳しくは、以下をご覧ください。\n$url"
+            data="ユーザ作成に失敗しました。詳しくは、以下をご覧ください。"
           elif [ $STATUS = "Success" ]; then
-            data="[To:$CW_ID] $CW_NAME\nユーザ作成に成功しました。詳しくは、以下をご覧ください。\n$url"
+            data="ユーザ作成に成功しました。詳しくは、以下をご覧ください。"
           fi
           
-          echo $data | curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" --data-binary @-
+          echo "[To:$CW_ID] $CW_NAME" > /tmp/tmp.txt
+          echo "$data" >> /tmp/tmp.txt
+          echo "$url" >> /tmp/tmp.txt
+          
+          curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(cat /tmp/tmp.txt)"
           
 
       
