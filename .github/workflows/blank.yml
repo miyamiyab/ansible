@@ -5,6 +5,11 @@ on:
     - main
     paths:
       - 'roles/add_user/files/users/**/id_rsa.pub'
+  workflow_dispatch:
+    inputs:
+      userName:
+        required: true
+        type: string
       
 permissions: 
       id-token: write
@@ -35,23 +40,28 @@ jobs:
           export REPOSITORY=$(echo ${{ github.repository }} | sed -e "s#.*/##")
           aws s3 cp ${{ github.sha }}.zip s3://miyashita-ansible/$REPOSITORY/${{ github.ref_name }}/
           
-      - name: Get username
+      - name: Get username from input.
+        if:  github.event_name == 'workflow_dispatch'
+        env:
+          USER: ${{ github.event.inputs.userName }}
+        run: echo "USER=$USER" >> $GITHUB_ENV
+      
+      - name: Get username from push.
+        if:  github.event_name == 'push'
         run: |
-          for path in $(git diff ${{ github.event.before }}...${{ github.event.after }} --diff-filter=A --name-only)
-          do
-            user=$(echo $path | cut -d'/' -f 5)
-            echo ${{ env.GIT_DIFF }}
-            echo $user
-            
-            aws ssm send-command \
-            --document-name "AWS-ApplyAnsiblePlaybooks" \
-            --document-version "1" \
-            --targets '[{"Key":"InstanceIds","Values":["i-050e7f95b5e8ecf89"]}]' \
-            --parameters '{"SourceType":["S3"],"SourceInfo":["{\"path\": \"https://miyashita-ansible.s3.ap-northeast-1.amazonaws.com/ansible/main/${{ github.sha }}.zip\"}"],"InstallDependencies":["True"],"PlaybookFile":["playbooks/add_user.yml"],"ExtraVariables":["username='$user'"],"Check":["False"],"Verbose":["-v"],"TimeoutSeconds":["3600"]}' \
-            --timeout-seconds 600 \
-            --max-concurrency "50" \
-            --max-errors "0" \
-            --region ap-northeast-1
-          done
+          USER=$(git diff ${{ github.event.before }}...${{ github.event.after }} --diff-filter=A --name-onlyh | cut -d'/' -f 5)
+          echo "USER=$USER" >> $GITHUB_ENV
+      
+      - name: Create user with ansible via ssm.
+        run: |            
+          aws ssm send-command \
+          --document-name "AWS-ApplyAnsiblePlaybooks" \
+          --document-version "1" \
+          --targets '[{"Key":"InstanceIds","Values":["i-050e7f95b5e8ecf89"]}]' \
+          --parameters '{"SourceType":["S3"],"SourceInfo":["{\"path\": \"https://miyashita-ansible.s3.ap-northeast-1.amazonaws.com/ansible/main/${{ github.sha }}.zip\"}"],"InstallDependencies":["True"],"PlaybookFile":["playbooks/add_user.yml"],"ExtraVariables":["username='$USER'"],"Check":["False"],"Verbose":["-v"],"TimeoutSeconds":["3600"]}' \
+          --timeout-seconds 600 \
+          --max-concurrency "50" \
+          --max-errors "0" \
+          --region ap-northeast-1
 
       
